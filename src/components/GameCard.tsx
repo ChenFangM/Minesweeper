@@ -13,6 +13,7 @@ type GameCardProps = {
   category: string;
   backgroundColor: string;
   className?: string;
+  onClick?: () => void;
 };
 
 const GameCard = ({ 
@@ -21,7 +22,8 @@ const GameCard = ({
   image, 
   category,
   backgroundColor,
-  className 
+  className,
+  onClick
 }: GameCardProps) => {
   return (
     <Card className={cn("border-none overflow-hidden game-card", className)}>
@@ -46,7 +48,10 @@ const GameCard = ({
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full bg-vibrant-purple hover:bg-vibrant-purple/90">
+        <Button 
+          className="w-full bg-vibrant-purple hover:bg-vibrant-purple/90"
+          onClick={onClick}
+        >
           Play Now
         </Button>
       </CardFooter>
