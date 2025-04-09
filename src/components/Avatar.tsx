@@ -26,9 +26,9 @@ const Avatar = ({ src, fallback, status, size = 'md', className }: AvatarProps) 
 
   return (
     <div className={cn("relative", className)}>
-      <ShadcnAvatar className={sizeClasses[size]}>
+      <ShadcnAvatar className={cn(sizeClasses[size], "ring-2 ring-background")}>
         <AvatarImage src={src || "/placeholder.svg"} />
-        <AvatarFallback className="bg-pastel-blue text-vibrant-blue font-medium">
+        <AvatarFallback className="bg-muted text-muted-foreground font-medium">
           {fallback}
         </AvatarFallback>
       </ShadcnAvatar>
@@ -36,7 +36,7 @@ const Avatar = ({ src, fallback, status, size = 'md', className }: AvatarProps) 
       {status && (
         <span 
           className={cn(
-            "absolute bottom-0 right-0 rounded-full border-2 border-white", 
+            "absolute bottom-0 right-0 rounded-full border-2 border-background", 
             statusColors[status],
             size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-3 w-3' : 'h-3.5 w-3.5'
           )}
