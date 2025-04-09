@@ -37,46 +37,25 @@ const Index = () => {
                   <TabsContent value="popular" className="space-y-6 mt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-slide-in">
                       <GameCard 
-                        title="Pixel Party" 
+                        title="Single Player" 
                         playerCount="148 playing"
                         image="/placeholder.svg"
-                        category="Arcade"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-mint"
                       />
                       <GameCard 
-                        title="Color Crush" 
+                        title="Duo Battle" 
                         playerCount="92 playing"
                         image="/placeholder.svg"
-                        category="Puzzle"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-blue"
                       />
                       <GameCard 
-                        title="Pastel Quest" 
+                        title="Multiplayer" 
                         playerCount="56 playing"
                         image="/placeholder.svg"
-                        category="Adventure"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-lavender"
-                      />
-                      <GameCard 
-                        title="Neon Jumper" 
-                        playerCount="78 playing"
-                        image="/placeholder.svg"
-                        category="Platform"
-                        backgroundColor="bg-pastel-pink"
-                      />
-                      <GameCard 
-                        title="Bubble Pop" 
-                        playerCount="45 playing"
-                        image="/placeholder.svg"
-                        category="Casual"
-                        backgroundColor="bg-pastel-yellow"
-                      />
-                      <GameCard 
-                        title="Retro Racing" 
-                        playerCount="32 playing"
-                        image="/placeholder.svg"
-                        category="Racing"
-                        backgroundColor="bg-pastel-peach"
                       />
                     </div>
                   </TabsContent>
@@ -84,24 +63,24 @@ const Index = () => {
                   <TabsContent value="new" className="space-y-6 mt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <GameCard 
-                        title="Space Shooters" 
+                        title="Single Player" 
                         playerCount="NEW! 24 playing"
                         image="/placeholder.svg"
-                        category="Action"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-blue"
                       />
                       <GameCard 
-                        title="Pixel Dungeon" 
+                        title="Duo Battle" 
                         playerCount="NEW! 18 playing"
                         image="/placeholder.svg"
-                        category="RPG"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-lavender"
                       />
                       <GameCard 
-                        title="Candy Match" 
+                        title="Multiplayer" 
                         playerCount="NEW! 36 playing"
                         image="/placeholder.svg"
-                        category="Puzzle"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-pink"
                       />
                     </div>
@@ -110,17 +89,17 @@ const Index = () => {
                   <TabsContent value="friends" className="space-y-6 mt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <GameCard 
-                        title="Pixel Party" 
+                        title="Duo Battle" 
                         playerCount="Jane + 2 friends"
                         image="/placeholder.svg"
-                        category="Arcade"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-mint"
                       />
                       <GameCard 
-                        title="Color Crush" 
+                        title="Multiplayer" 
                         playerCount="Max playing"
                         image="/placeholder.svg"
-                        category="Puzzle"
+                        category="Minesweeper"
                         backgroundColor="bg-pastel-blue"
                       />
                     </div>

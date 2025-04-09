@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Gamepad, MessageSquare, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 type SidebarItemProps = {
   icon: React.ReactNode;
@@ -29,22 +30,36 @@ const SidebarItem = ({ icon, label, active, onClick }: SidebarItemProps) => {
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ activePage }: { activePage?: string }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Determine active page based on prop or current location
+  const currentPage = activePage || (
+    location.pathname === '/game' ? 'games' :
+    location.pathname === '/friends' ? 'friends' :
+    location.pathname === '/messages' ? 'messages' : 'games'
+  );
   return (
     <aside className="w-64 border-r h-screen p-4 hidden md:block">
       <div className="space-y-1">
         <SidebarItem 
           icon={<Gamepad className="h-5 w-5" />}
           label="Games" 
-          active={true}
+          active={currentPage === 'games'}
+          onClick={() => navigate('/game')}
         />
         <SidebarItem 
           icon={<Users className="h-5 w-5" />}
           label="Friends" 
+          active={currentPage === 'friends'}
+          onClick={() => navigate('/friends')}
         />
         <SidebarItem 
           icon={<MessageSquare className="h-5 w-5" />}
           label="Messages" 
+          active={currentPage === 'messages'}
+          onClick={() => navigate('/messages')}
         />
       </div>
       
