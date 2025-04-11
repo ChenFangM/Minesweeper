@@ -79,129 +79,100 @@ const DuoGame = () => {
     try {
       console.log('Attempting to join game with ID:', cleanGameId);
       
-      // First, check if the game exists
-      const { data: existingGames, error: checkError } = await supabase
-        .from('duo_games')
-        .select('*')
-        .eq('game_id', cleanGameId);
+      // First, check if the game exists using the public search function
+      console.log('Searching for game with ID:', cleanGameId);
+      
+      // Use the search_game_by_id function that we created in the migration
+      // This function is accessible to all authenticated users
+      const { data: searchResult, error: searchError } = await supabase
+        .rpc('search_game_by_id', { p_game_id: cleanGameId });
+      
+      if (searchError) {
+        console.error('Error searching for game:', searchError);
+        throw new Error('Error searching for game. Please try again.');
+      }
+      
+      // Format the search results into a format similar to what we'd get from a direct query
+      const existingGames = searchResult || [];
+      const checkError = searchError;
       
       if (checkError) {
         console.error('Error checking if game exists:', checkError);
         throw new Error('Error checking game. Please try again.');
       }
       
-      // If game doesn't exist, show error instead of creating a new one
+      // If game doesn't exist, show error
       if (!existingGames || existingGames.length === 0) {
         console.log('Game not found');
         throw new Error('Game not found. Please check the game ID and try again.');
-        
-      } else {
-        // Game exists, check if we can join it
-        const existingGame = existingGames[0];
-        console.log('Found existing game:', existingGame);
-        
-        // If we're already the creator, just navigate to it
-        if (existingGame.creator_id === user.id) {
-          console.log('User is already the creator, navigating to game');
-        } 
-        // If we're already the opponent, just navigate to it
-        else if (existingGame.opponent_id === user.id) {
-          console.log('User is already the opponent, navigating to game');
-        }
-        // If game already has an opponent, show error
-        else if (existingGame.opponent_id) {
-          console.error('Game already has an opponent');
-          throw new Error('This game already has two players. Please create a new game or join a different one.');
-        }
-        // If game is not in waiting status, show error
-        else if (existingGame.status !== 'waiting') {
-          console.error('Game is not in waiting status');
-          throw new Error('This game is not available to join. Please create a new game or join a different one.');
-        }
-        // Otherwise, we can join as opponent
-        else {
-          console.log('Joining as opponent');
-          
-          // Try multiple approaches to update the game with our info
-          let joinSuccess = false;
-          
-          // Approach 1: Direct update (might fail due to RLS)
-          console.log('Attempting direct update approach');
-          const { error: updateError } = await supabase
-            .from('duo_games')
-            .update({
-              opponent_id: user.id,
-              status: 'ready',
-              updated_at: new Date()
-            })
-            .eq('game_id', cleanGameId);
-          
-          if (updateError) {
-            console.error('Direct update failed:', updateError);
-            
-            // Approach 2: Use a stored function (if available)
-            console.log('Attempting stored function approach');
-            try {
-              const { data: joinResult, error: rpcError } = await supabase.rpc('join_duo_game', {
-                p_game_id: cleanGameId,
-                p_user_id: user.id
-              });
-              
-              if (rpcError) {
-                console.error('RPC approach failed:', rpcError);
-              } else {
-                console.log('RPC approach succeeded:', joinResult);
-                joinSuccess = true;
-              }
-            } catch (rpcErr) {
-              console.error('RPC call failed:', rpcErr);
-            }
-            
-            // Approach 3: Use a REST endpoint (if all else fails)
-            if (!joinSuccess) {
-              console.log('Attempting REST API approach');
-              try {
-                // This would be a custom API endpoint that you'd need to implement
-                // For now, we'll just simulate it with another direct update attempt
-                const { error: retryError } = await supabase
-                  .from('duo_games')
-                  .update({
-                    opponent_id: user.id,
-                    status: 'ready',
-                    updated_at: new Date()
-                  })
-                  .eq('game_id', cleanGameId);
-                
-                if (!retryError) {
-                  console.log('Retry update succeeded');
-                  joinSuccess = true;
-                } else {
-                  console.error('Retry update failed:', retryError);
-                }
-              } catch (restErr) {
-                console.error('REST approach failed:', restErr);
-              }
-            }
-            
-            // If all approaches failed, throw an error
-            if (!joinSuccess) {
-              throw new Error('Could not join game after multiple attempts. Please try again.');
-            }
-          } else {
-            console.log('Direct update succeeded');
-          }
-          
-          console.log('Successfully joined game as opponent');
-        }
       }
       
-      // Navigate to the game room
+      // Game exists, check if we can join it
+      const existingGame = existingGames[0];
+      console.log('Found existing game:', existingGame);
+      
+      // If we're already the creator or opponent, just navigate to it
+      if (existingGame.creator_id === user.id || existingGame.opponent_id === user.id) {
+        console.log('User is already part of this game, navigating to game room');
+        navigate(`/game/duo/${cleanGameId}`);
+        return;
+      }
+      
+      // If game already has an opponent, show error
+      if (existingGame.opponent_id) {
+        console.error('Game already has an opponent');
+        throw new Error('This game already has two players. Please create a new game or join a different one.');
+      }
+      
+      // If game is not in waiting status, show error
+      if (existingGame.status !== 'waiting') {
+        console.error('Game is not in waiting status');
+        throw new Error('This game is not available to join. Please create a new game or join a different one.');
+      }
+      
+      // At this point, we can join as opponent
+      console.log('Joining as opponent');
+      
+      // Use the join_duo_game stored procedure to join the game
+      console.log('Attempting to join game using stored procedure');
+      
+      const { data: joinResult, error: joinError } = await supabase
+        .rpc('join_duo_game', {
+          p_game_id: cleanGameId,
+          p_user_id: user.id
+        });
+      
+      if (joinError) {
+        console.error('Error joining game:', joinError);
+        throw new Error(`Failed to join game: ${joinError.message || 'Unknown error'}`);
+      }
+      
+      console.log('Successfully joined game, navigating to game room');
       navigate(`/game/duo/${cleanGameId}`);
-      return;
-
+      
     } catch (err: any) {
       console.error('Error joining game:', err);
-      setError(err.message || 'Failed to join game');
+      
+      // Enhanced error handling to capture Supabase errors
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to join game');
+      } else if (typeof err === 'object' && err !== null) {
+        // Handle Supabase error object format
+        if ('code' in err && 'message' in err) {
+          setError(`Database error (${err.code}): ${err.message}`);
+        } else if ('details' in err) {
+          setError(`Error details: ${err.details}`);
+        } else {
+          // Try to stringify the error object for debugging
+          try {
+            setError(JSON.stringify(err) || 'Failed to join game');
+          } catch {
+            setError('Failed to join game with unknown error');
+          }
+        }
+      } else {
+        setError('Failed to join game. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
