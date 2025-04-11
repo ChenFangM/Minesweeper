@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,47 @@ type PlayerStatus = {
   isHost: boolean;
 };
 
-const WaitingRoom: React.FC<WaitingRoomProps> = ({
+// Player status component to isolate re-renders
+const PlayerStatusItem: React.FC<{
+  player: PlayerStatus;
+  userId: string;
+  onToggleReady?: () => void;
+}> = memo(({ player, userId, onToggleReady }) => {
+  const isCurrentUser = player.id === userId;
+  
+  return (
+    <div 
+      className={`flex items-center justify-between p-3 rounded-md border
+        ${player.isHost ? 'border-vibrant-purple bg-purple-50' : 'border-gray-200'}`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{player.username || 'Unknown Player'}</span>
+        {player.isHost && (
+          <Badge variant="secondary" className="text-xs">Host</Badge>
+        )}
+      </div>
+      {isCurrentUser && !player.isHost ? (
+        <Button 
+          variant={player.isReady ? "outline" : "default"}
+          size="sm"
+          onClick={onToggleReady}
+        >
+          {player.isReady ? 'Cancel Ready' : 'Ready'}
+        </Button>
+      ) : (
+        <Badge 
+          variant="outline"
+          className={player.isReady ? "bg-green-100 text-green-800 hover:bg-green-100 border-green-200" : ""}
+        >
+          {player.isReady ? 'Ready' : 'Not Ready'}
+        </Badge>
+      )}
+    </div>
+  );
+});
+
+// Using memo to prevent unnecessary re-renders
+const WaitingRoom: React.FC<WaitingRoomProps> = memo(({
   gameId,
   userId,
   isHost,
@@ -66,12 +106,16 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         const playerIds = [gameData.creator_id];
         if (gameData.opponent_id) playerIds.push(gameData.opponent_id);
         
+        console.log('Loading profiles for player IDs:', playerIds);
+        
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, username')
           .in('id', playerIds);
         
         if (profilesError) throw profilesError;
+        
+        console.log('Loaded player profiles:', profilesData);
         
         // Determine if opponent is ready based on game status
         const isOpponentReady = gameData.status === 'ready' || gameData.status === 'playing';
@@ -83,10 +127,19 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         // Add host
         const hostProfile = profilesData?.find(p => p.id === gameData.creator_id);
         if (hostProfile) {
+          console.log('Adding host profile:', hostProfile);
           playerStatusArray.push({
             id: hostProfile.id,
-            username: hostProfile.username,
+            username: hostProfile.username || `Host (${hostProfile.id.slice(-4)})`,
             isReady: true, // Host is always ready
+            isHost: true
+          });
+        } else {
+          console.warn('Host profile not found, using fallback');
+          playerStatusArray.push({
+            id: gameData.creator_id,
+            username: `Host (${gameData.creator_id.slice(-4)})`,
+            isReady: true,
             isHost: true
           });
         }
@@ -95,9 +148,10 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         if (gameData.opponent_id) {
           const opponentProfile = profilesData?.find(p => p.id === gameData.opponent_id);
           if (opponentProfile) {
+            console.log('Adding opponent profile:', opponentProfile);
             playerStatusArray.push({
               id: opponentProfile.id,
-              username: opponentProfile.username,
+              username: opponentProfile.username || `Opponent (${opponentProfile.id.slice(-4)})`,
               isReady: isOpponentReady, // Set based on game status
               isHost: false
             });
@@ -107,6 +161,14 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
               console.log(`Setting initial ready state for opponent to: ${isOpponentReady}`);
               setIsReady(isOpponentReady);
             }
+          } else {
+            console.warn('Opponent profile not found, using fallback');
+            playerStatusArray.push({
+              id: gameData.opponent_id,
+              username: `Opponent (${gameData.opponent_id.slice(-4)})`,
+              isReady: isOpponentReady,
+              isHost: false
+            });
           }
         }
         
@@ -154,11 +216,23 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         const opponentReadyState = newGameData.status === 'ready' || newGameData.status === 'playing';
         console.log(`Setting opponent ready status to: ${opponentReadyState}`);
         
+        // Check if creator_id has changed
+        if (newGameData.creator_id !== oldGameData.creator_id) {
+          console.log('Creator ID changed, reloading player profiles');
+          loadPlayers(); // Reload all player data when host changes
+          return;
+        }
+        
+        // Only update the ready status without changing usernames
         setPlayers(prev => {
           return prev.map(player => {
             // Host is always ready
-            if (player.isHost) return { ...player, isReady: true };
+            if (player.isHost) {
+              console.log('Preserving host data:', player);
+              return { ...player, isReady: true };
+            }
             // Update opponent ready status based on game status
+            console.log('Updating opponent ready status:', { ...player, isReady: opponentReadyState });
             return { ...player, isReady: opponentReadyState };
           });
         });
@@ -169,9 +243,11 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
           onGameStart();
         }
         
-        // If opponent joined
-        if (payload.new && payload.new.opponent_id && !payload.old.opponent_id) {
-          // Reload players to get the new opponent
+        // If opponent joined or changed, or creator changed
+        if ((payload.new && payload.new.opponent_id !== payload.old.opponent_id) ||
+            (payload.new && payload.new.creator_id !== payload.old.creator_id)) {
+          console.log('Player change detected, reloading player profiles');
+          // Reload players to get the updated player information
           loadPlayers();
         }
       })
@@ -182,38 +258,39 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
     };
   }, [gameId, userId, onGameStart]);
 
-  // Simplified copy function that just selects the text for manual copying
+  // Simple copy function that uses a temporary input element
   const copyGameId = () => {
+    if (!gameId) return;
+    
     try {
-      // Instead of trying to use the Clipboard API which might be blocked,
-      // we'll just select the text for the user to copy manually
-      const codeElement = document.querySelector('code');
-      if (codeElement) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(codeElement);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        
-        // Show the copied state to indicate to the user that text is selected
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        
-        // Update the button text to guide the user
-        const buttonText = document.querySelector('.copy-button-text');
-        if (buttonText) {
-          buttonText.textContent = 'Text Selected';
-          setTimeout(() => {
-            buttonText.textContent = 'Copy';
-          }, 2000);
-        }
-      }
+      // Create a temporary input element
+      const tempInput = document.createElement('input');
+      tempInput.value = gameId;
+      document.body.appendChild(tempInput);
+      
+      // Select the text
+      tempInput.select();
+      tempInput.setSelectionRange(0, 99999); // For mobile devices
+      
+      // Copy the text
+      document.execCommand('copy');
+      
+      // Remove the temporary element
+      document.body.removeChild(tempInput);
+      
+      // Show copied state
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to select game ID:', err);
-      // No need to show an error - the text is already displayed
-      // and the user can manually copy it
+      console.error('Failed to copy game ID:', err);
+      
+      // Fallback: Just show the ID and ask user to copy manually
+      alert(`Please copy this game ID manually: ${gameId}`);
     }
   };
+  
+  // Log when component re-renders
+  console.log('WaitingRoom component rendered', { gameId, isHost, gameSettings, players });
 
   const toggleReady = async () => {
     try {
@@ -225,11 +302,29 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
       if (!isHost) {
         console.log(`Updating game status to ${newReadyState ? 'ready' : 'waiting'}`);
         
+        // First, get the current game data to preserve the creator_id
+        const { data: currentGame, error: fetchError } = await supabase
+          .from('duo_games')
+          .select('creator_id')
+          .eq('game_id', gameId)
+          .single();
+        
+        if (fetchError) {
+          console.error('Error fetching current game data:', fetchError);
+          throw fetchError;
+        }
+        
+        if (!currentGame || !currentGame.creator_id) {
+          throw new Error('Could not determine the current host');
+        }
+        
+        // Now update with the preserved creator_id
         const { error } = await supabase
           .from('duo_games')
           .update({
             status: newReadyState ? 'ready' : 'waiting',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            creator_id: currentGame.creator_id // Explicitly preserve the creator_id
           })
           .eq('game_id', gameId);
         
@@ -239,8 +334,6 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         }
         
         console.log('Successfully updated game status in database');
-        
-        // Now update local state AFTER successful database update
         setIsReady(newReadyState);
         
         // Also update the players array
@@ -348,9 +441,9 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         <div className="flex flex-col space-y-2">
           <p className="text-sm font-medium">Game ID:</p>
           <div className="flex items-center gap-2">
-            <code className="bg-gray-100 px-2 py-1 rounded text-sm flex-1 overflow-x-auto">
+            <div className="bg-gray-100 px-2 py-1 rounded text-sm flex-1 overflow-x-auto font-mono">
               {gameId}
-            </code>
+            </div>
             <Button 
               variant="outline" 
               size="sm" 
@@ -367,9 +460,9 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         <div className="space-y-2">
           <p className="text-sm font-medium">Game Settings:</p>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{getDifficultyLabel()}</Badge>
-            <Badge variant="outline">{gameSettings.totalRounds} Rounds</Badge>
-            <Badge variant="outline">Timer Enabled</Badge>
+            <Badge key="difficulty-badge" variant="outline">{getDifficultyLabel()}</Badge>
+            <Badge key="rounds-badge" variant="outline">{gameSettings.totalRounds} Rounds</Badge>
+            <Badge key="timer-badge" variant="outline">Timer Enabled</Badge>
           </div>
         </div>
         
@@ -377,29 +470,17 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         <div className="space-y-3">
           <p className="text-sm font-medium">Players:</p>
           <div className="space-y-2">
-            {players.map(player => (
-              <div 
-                key={player.id} 
-                className={`flex items-center justify-between p-3 rounded-md border
-                  ${player.isHost ? 'border-vibrant-purple bg-purple-50' : 'border-gray-200'}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{player.username || 'Unknown Player'}</span>
-                  {player.isHost && (
-                    <Badge variant="secondary" className="text-xs">Host</Badge>
-                  )}
-                </div>
-                <Badge 
-                  variant="outline"
-                  className={player.isReady ? "bg-green-100 text-green-800 hover:bg-green-100 border-green-200" : ""}
-                >
-                  {player.isReady ? 'Ready' : 'Not Ready'}
-                </Badge>
-              </div>
+            {players.map((player, index) => (
+              <PlayerStatusItem
+                key={`player-${player.id}-${index}`}
+                player={player}
+                userId={userId}
+                onToggleReady={player.id === userId && !player.isHost ? toggleReady : undefined}
+              />
             ))}
             
             {players.length < 2 && (
-              <div className="flex items-center justify-center p-3 rounded-md border border-dashed border-gray-300">
+              <div key="waiting-message" className="flex items-center justify-center p-3 rounded-md border border-dashed border-gray-300">
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Waiting for opponent to join...
@@ -428,18 +509,22 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
             {starting ? 'Starting...' : 'Start Game'}
           </Button>
         ) : (
-          <Button 
-            className="w-full"
-            onClick={toggleReady}
-            variant={isReady ? "outline" : "default"}
-          >
-            {isReady ? 'Cancel Ready' : 'Ready to Play'}
-          </Button>
+          <div className="hidden">
+            {/* We're moving the Ready button to the player status item to isolate re-renders */}
+            {/* This hidden button is just for backward compatibility */}
+            <Button 
+              className="w-full"
+              onClick={toggleReady}
+              variant={isReady ? "outline" : "default"}
+            >
+              {isReady ? 'Cancel Ready' : 'Ready to Play'}
+            </Button>
+          </div>
         )}
         {error && <p className="text-sm text-red-500">{error}</p>}
       </CardFooter>
     </Card>
   );
-};
+});
 
 export default WaitingRoom;

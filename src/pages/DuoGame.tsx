@@ -50,7 +50,7 @@ const DuoGame = () => {
       
       console.log('Successfully created game, navigating to game room');
       // Navigate to the game room
-      navigate(`/game/duo/${newGameId}`);
+      navigate(`/duo/${newGameId}`);
     } catch (err: any) {
       console.error('Error creating game:', err);
       setError(err.message || 'Failed to create game');
@@ -114,7 +114,7 @@ const DuoGame = () => {
       // If we're already the creator or opponent, just navigate to it
       if (existingGame.creator_id === user.id || existingGame.opponent_id === user.id) {
         console.log('User is already part of this game, navigating to game room');
-        navigate(`/game/duo/${cleanGameId}`);
+        navigate(`/duo/${cleanGameId}`);
         return;
       }
       
@@ -148,7 +148,7 @@ const DuoGame = () => {
       }
       
       console.log('Successfully joined game, navigating to game room');
-      navigate(`/game/duo/${cleanGameId}`);
+      navigate(`/duo/${cleanGameId}`);
       
     } catch (err: any) {
       console.error('Error joining game:', err);
