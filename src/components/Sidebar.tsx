@@ -114,19 +114,31 @@ const Sidebar = ({ activePage }: { activePage?: string }) => {
       </div>
       
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-4">ACTIVE GAMES</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-4">RECOMMENDED GAMES</h3>
         <div className="space-y-1">
-          <Button variant="ghost" className="w-full justify-start py-2 px-4 rounded-lg">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 px-4 rounded-lg"
+            onClick={() => navigate('/game/single-player')}
+          >
             <div className="w-2 h-2 rounded-full bg-green-400 mr-2" />
-            <span>Pixel Party (3/4)</span>
+            <span>Single Player</span>
           </Button>
-          <Button variant="ghost" className="w-full justify-start py-2 px-4 rounded-lg">
-            <div className="w-2 h-2 rounded-full bg-green-400 mr-2" />
-            <span>Color Crush (2/2)</span>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 px-4 rounded-lg"
+            onClick={() => navigate('/game/duo')}
+          >
+            <div className="w-2 h-2 rounded-full bg-blue-400 mr-2" />
+            <span>Duo Battle</span>
           </Button>
-          <Button variant="ghost" className="w-full justify-start py-2 px-4 rounded-lg">
-            <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" />
-            <span>Pastel Quest (1/4)</span>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 px-4 rounded-lg"
+            onClick={() => navigate('/game/multi')}
+          >
+            <div className="w-2 h-2 rounded-full bg-purple-400 mr-2" />
+            <span>Multiplayer</span>
           </Button>
         </div>
       </div>

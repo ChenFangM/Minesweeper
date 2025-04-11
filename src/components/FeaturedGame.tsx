@@ -3,25 +3,28 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const FeaturedGame = () => {
+  const navigate = useNavigate();
   return (
     <div className="relative rounded-xl overflow-hidden border border-border bg-card">
       <div className="absolute inset-0 bg-vibrant-purple/10" />
       <div className="relative z-10 p-6 md:p-10 flex flex-col h-full">
         <div className="space-y-2">
           <Badge className="bg-vibrant-purple text-white hover:bg-vibrant-purple/90">Featured Game</Badge>
-          <h2 className="text-2xl md:text-3xl font-bold">Pixel Paradise</h2>
-          <p className="text-muted-foreground max-w-md">Join an epic multiplayer adventure in a colorful pixel world. Build, explore, and compete with friends!</p>
+          <h2 className="text-2xl md:text-3xl font-bold">Duo Battle</h2>
+          <p className="text-muted-foreground">Join an epic multiplayer battle!</p>
+          <p className="text-muted-foreground">Don't miss out on our favorite activity: breaking up a friendship.</p>
         </div>
         
         <div className="mt-6 flex items-center gap-4">
-          <Button className="bg-vibrant-purple hover:bg-vibrant-purple/90 text-white">
+          <Button className="bg-vibrant-purple hover:bg-vibrant-purple/90 text-white" onClick={() => navigate('/game/duo')}>
             Play Now
           </Button>
           <div className="flex items-center text-muted-foreground">
             <Users className="h-5 w-5 mr-1.5" />
-            <span>324 players online</span>
+            <span>2 players per game</span>
           </div>
         </div>
       </div>

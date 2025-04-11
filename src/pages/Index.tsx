@@ -89,22 +89,23 @@ const Index = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-slide-in">
                       <GameCard 
                         title="Single Player" 
-                        playerCount="148 playing"
+                        playerCount="1 player per game"
                         image="/placeholder.svg"
                         category="Minesweeper"
                         backgroundColor="bg-pastel-mint"
-                        onClick={() => navigate('/single-player')}
+                        onClick={() => navigate('/game/single-player')}
                       />
                       <GameCard 
                         title="Duo Battle" 
-                        playerCount="92 playing"
+                        playerCount="2 players per game"
                         image="/placeholder.svg"
                         category="Minesweeper"
                         backgroundColor="bg-pastel-blue"
+                        onClick={() => navigate('/game/duo')}
                       />
                       <GameCard 
                         title="Multiplayer" 
-                        playerCount="56 playing"
+                        playerCount="500 playing"
                         image="/placeholder.svg"
                         category="Minesweeper"
                         backgroundColor="bg-pastel-lavender"

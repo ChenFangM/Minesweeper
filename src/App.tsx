@@ -12,6 +12,8 @@ import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import Friends from "./pages/Friends";
 import SinglePlayer from "./pages/SinglePlayer";
+import DuoGame from "./pages/DuoGame";
+import DuoGameRoom from "./pages/DuoGameRoom";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,9 +60,19 @@ const App = () => (
                 <Friends />
               </ProtectedRoute>
             } />
-            <Route path="/single-player" element={
+            <Route path="/game/single-player" element={
               <ProtectedRoute>
                 <SinglePlayer />
+              </ProtectedRoute>
+            } />
+            <Route path="/game/duo" element={
+              <ProtectedRoute>
+                <DuoGame />
+              </ProtectedRoute>
+            } />
+            <Route path="/game/duo/:gameId" element={
+              <ProtectedRoute>
+                <DuoGameRoom />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
