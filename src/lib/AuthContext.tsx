@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { supabase, handleAuthFromUrl } from './supabase';
 
 type AuthContextType = {
   user: User | null;
@@ -25,16 +25,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initAuth = async () => {
+      setLoading(true);
+      
+      // Check if we're coming from an email confirmation link
+      const isFromEmailLink = await handleAuthFromUrl();
+      if (isFromEmailLink) {
+        console.log('Successfully processed auth from URL');
+      }
+      
+      // Get initial session
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-    });
+    };
+    
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log('Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -50,8 +62,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
-  const signUp = (email: string, password: string) => {
-    return supabase.auth.signUp({ email, password });
+  const signUp = async (email: string, password: string) => {
+    try {
+      // First, check if the user already exists to provide a better error message
+      const { data: existingUser } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password: password + '_dummy_suffix' // Use a modified password to avoid actually logging in
+      });
+      
+      // If we got a user back, the email exists (despite the wrong password)
+      if (existingUser?.user) {
+        return {
+          error: new Error('This email is already registered'),
+          data: null
+        };
+      }
+      
+      // Attempt the signup with proper redirect URL and disable auto-confirmation
+      const result = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            full_name: '',
+            avatar_url: ''
+          }
+        }
+      });
+      
+      // If there's an error in the auth process, return it immediately
+      if (result.error) {
+        console.error('Auth signup error:', result.error);
+        
+        // Provide a more user-friendly message for the 500 error
+        if (result.error.status === 500) {
+          return {
+            error: new Error('The authentication service is currently unavailable. Please try again later.'),
+            data: null
+          };
+        }
+        
+        return result;
+      }
+      
+      // If signup was successful but no user was created, it might be a duplicate email
+      if (!result.data?.user) {
+        return {
+          error: new Error('This email is already registered'),
+          data: null
+        };
+      }
+      
+      // Check if identities array is empty (which indicates the user already exists)
+      if (result.data.user.identities?.length === 0) {
+        return {
+          error: new Error('This email is already registered'),
+          data: null
+        };
+      }
+      
+      // Return the successful result
+      return result;
+    } catch (err) {
+      console.error('Unexpected error during signup:', err);
+      return {
+        error: new Error('An unexpected error occurred during signup'),
+        data: null
+      };
+    }
   };
 
   const signOut = async () => {

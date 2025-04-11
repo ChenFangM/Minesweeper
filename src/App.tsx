@@ -22,15 +22,22 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-  
-  if (!user) {
+  // Add error handling
+  try {
+    if (loading) {
+      return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    }
+    
+    if (!user) {
+      return <Navigate to="/login" />;
+    }
+    
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Error in ProtectedRoute:', error);
+    // Fallback to login if there's an error
     return <Navigate to="/login" />;
   }
-  
-  return <>{children}</>;
 };
 
 const App = () => (
